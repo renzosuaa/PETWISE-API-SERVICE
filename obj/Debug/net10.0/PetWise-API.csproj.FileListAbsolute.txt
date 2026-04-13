@@ -51,3 +51,4 @@ C:\Users\Renzo\source\repos\PetWise-API\PetWise-API\obj\Debug\net10.0\ref\PetWis
 C:\Users\Renzo\source\repos\PetWise-API\PetWise-API\bin\Debug\net10.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
 C:\Users\Renzo\source\repos\PetWise-API\PetWise-API\bin\Debug\net10.0\Microsoft.IdentityModel.Protocols.dll
 C:\Users\Renzo\source\repos\PetWise-API\PetWise-API\bin\Debug\net10.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+C:\Users\Renzo\source\repos\PetWise-API\PetWise-API\obj\Debug\net10.0\PetWise-API.sourcelink.json

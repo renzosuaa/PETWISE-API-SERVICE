@@ -16,7 +16,7 @@ namespace PetWise_API.Models
         public string species { get; set; }
 
         [Column("user_id")]
-        public int user_id { get; set; }
+        public string user_id { get; set; }
 
         [Column("birthday")]
         public DateTime birthday { get; set; }

@@ -430,38 +430,6 @@
         }
       }
     },
-    "/User": {
-      "post": {
-        "tags": [
-          "User"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateUserRequest"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateUserRequest"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateUserRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
     "/User/{user_id}": {
       "get": {
         "tags": [
@@ -473,12 +441,7 @@
             "in": "path",
             "required": true,
             "schema": {
-              "pattern": "^-?(?:0|[1-9]\\d*)$",
-              "type": [
-                "integer",
-                "string"
-              ],
-              "format": "int32"
+              "type": "string"
             }
           }
         ],
@@ -551,35 +514,13 @@
             "type": "string"
           },
           "user_id": {
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ],
-            "format": "int32"
+            "type": "string"
           },
           "birthday": {
             "type": "string",
             "format": "date-time"
           },
           "sex": {
-            "type": "string"
-          }
-        }
-      },
-      "CreateUserRequest": {
-        "type": "object",
-        "properties": {
-          "first_name": {
-            "type": "string"
-          },
-          "last_name": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
-          "password": {
             "type": "string"
           }
         }

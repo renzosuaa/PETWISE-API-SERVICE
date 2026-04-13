@@ -17,37 +17,40 @@ namespace PetWise_API.Controllers
         }
 
 
-        [HttpPost("/User/")]
-        public async Task<IActionResult> CreateUser(CreateUserRequest request)
-        {
-            try
-            {
-                var user = new User
-                {
-                    first_name = request.first_name,
-                    last_name = request.last_name,
-                    email = request.email,
-                    password = request.password,
-                    created_at = DateTime.UtcNow
-                };
+        // CREATING USER IS IN THE AUTH CONTROLLER
 
-                var response = await _client.From<User>().Insert(user);
+        //[HttpPost("/User/")]
+        //public async Task<IActionResult> CreateUser(CreateUserRequest request)
+        //{
+        //    try
+        //    {
+        //        var user = new User
+        //        {
+        //            user_id = 
+        //            first_name = request.first_name,
+        //            last_name = request.last_name,
+        //            email = request.email,
+        //            password = request.password,
+        //            created_at = DateTime.UtcNow
+        //        };
 
-                var newUser = response.Models.First();
+        //        var response = await _client.From<User>().Insert(user);
 
-                return Ok(newUser.user_id);
+        //        var newUser = response.Models.First();
 
-            }
-            catch (Postgrest.Exceptions.PostgrestException ex) when(ex.Message.Contains("duplicate key value"))
-            {
-                return Conflict(new { message="Email Already Exist" }); 
-            }
-            
-        }
+        //        return Ok(newUser.user_id);
+
+        //    }
+        //    catch (Postgrest.Exceptions.PostgrestException ex) when(ex.Message.Contains("duplicate key value"))
+        //    {
+        //        return Conflict(new { message="Email Already Exist" }); 
+        //    }
+
+        //}
 
 
         [HttpGet("/User/{user_id}")]
-        public async Task<IActionResult> GetUser(int user_id)
+        public async Task<IActionResult> GetUser(string user_id)
         {
             var response = await _client.From<User>()
                                         .Where(u => u.user_id == user_id)

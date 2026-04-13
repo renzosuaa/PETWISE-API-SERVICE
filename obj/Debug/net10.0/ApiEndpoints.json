@@ -241,22 +241,6 @@
   },
   {
     "ContainingType": "PetWise_API.Controllers.UserController",
-    "Method": "CreateUser",
-    "RelativePath": "User",
-    "HttpMethod": "POST",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [
-      {
-        "Name": "request",
-        "Type": "PetWise_API.Contracts.User.CreateUserRequest",
-        "IsRequired": true
-      }
-    ],
-    "ReturnTypes": []
-  },
-  {
-    "ContainingType": "PetWise_API.Controllers.UserController",
     "Method": "GetUser",
     "RelativePath": "User/{user_id}",
     "HttpMethod": "GET",
@@ -265,7 +249,7 @@
     "Parameters": [
       {
         "Name": "user_id",
-        "Type": "System.Int32",
+        "Type": "System.String",
         "IsRequired": true
       }
     ],
