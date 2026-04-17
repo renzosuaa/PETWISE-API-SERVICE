@@ -7,7 +7,7 @@ namespace PetWise_API.Models
     public class User : BaseModel
     {
         [PrimaryKey("user_id", false)]
-        public string user_id { get; set; }
+        public Guid user_id { get; set; }
 
         [Column("first_name")]
         public string first_name { get; set; }
@@ -20,6 +20,9 @@ namespace PetWise_API.Models
 
         [Column("password")]
         public string password { get; set; }
+
+        [Column("nickname")]
+        public string nickname { get; set; }
 
         [Column("created_at")]
         public DateTime created_at { get; set; }  

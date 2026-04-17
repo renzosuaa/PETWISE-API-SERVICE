@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PetWise-API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c4a1fa51fd4dda21d4fec0e1aa4d7fe716c5bb67")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4247d7d8bd4c2ccc45b1fb04f483bf7b5cfd03ac")]
 [assembly: System.Reflection.AssemblyProductAttribute("PetWise-API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PetWise-API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

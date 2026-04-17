@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using System;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using PetWise_API.Contracts.Auth;
 using PetWise_API.Models;
+using Postgrest;
+using ForgotPasswordRequest = PetWise_API.Contracts.Auth.ForgotPasswordRequest;
 
 namespace PetWise_API.Controllers
 {
@@ -16,7 +19,7 @@ namespace PetWise_API.Controllers
             _client = client;
         }
 
-        // Signing In
+        #region POST
         [HttpPost("/Auth/Signup")]
         public async Task<IActionResult> SignUp(SignUpRequest request)
         {
@@ -27,7 +30,8 @@ namespace PetWise_API.Controllers
                 if (session.User == null)
                     return BadRequest(new { message = "Could not create auth user." });
 
-                var supabaseUserId = session.User.Id;
+                if (!Guid.TryParse(session.User.Id, out var supabaseUserId))
+                    return StatusCode(500, new { message = "Invalid user id format from auth provider." });
 
                 // Only set session if tokens are present
                 if (!string.IsNullOrEmpty(session.AccessToken) && !string.IsNullOrEmpty(session.RefreshToken))
@@ -68,7 +72,7 @@ namespace PetWise_API.Controllers
         }
 
 
-        // Diagnostic SignIn — run once to capture session details and DB error info
+        // Diagnostic SignIn — use Guid and pass string criterion to Postgrest
         [HttpPost("/Auth/Signin")]
         public async Task<IActionResult> SignIn(SigninRequest request)
         {
@@ -79,10 +83,13 @@ namespace PetWise_API.Controllers
                 if (session.User == null)
                     return Unauthorized(new { message = "Invalid credentials." });
 
-                // Log session info for debugging
-                Console.WriteLine($"[DEBUG] SignIn: UserId={session.User.Id}");
-                Console.WriteLine($"[DEBUG] AccessToken present={!string.IsNullOrEmpty(session.AccessToken)} Length={(session.AccessToken ?? "").Length}");
-                Console.WriteLine($"[DEBUG] RefreshToken present={!string.IsNullOrEmpty(session.RefreshToken)} Length={(session.RefreshToken ?? "").Length}");
+                //// Log session info for debugging
+                //Console.WriteLine($"[DEBUG] SignIn: UserId={session.User.Id}");
+                //Console.WriteLine($"[DEBUG] AccessToken present={!string.IsNullOrEmpty(session.AccessToken)} Length={(session.AccessToken ?? "").Length}");
+                //Console.WriteLine($"[DEBUG] RefreshToken present={!string.IsNullOrEmpty(session.RefreshToken)} Length={(session.RefreshToken ?? "").Length}");
+
+                if (!Guid.TryParse(session.User.Id, out var supabaseUserId))
+                    return StatusCode(500, new { message = "Invalid user id format from auth provider." });
 
                 if (!string.IsNullOrEmpty(session.AccessToken) && !string.IsNullOrEmpty(session.RefreshToken))
                 {
@@ -95,14 +102,14 @@ namespace PetWise_API.Controllers
                     return StatusCode(500, new { message = "Sign-in succeeded but no session tokens issued." });
                 }
 
-                // Test an authenticated read (small query) and capture any Postgrest error details
+                // Use string criterion for Postgrest filter
                 try
                 {
-                    var user = (await _client.From<User>()
-                                            .Filter("user_id", Postgrest.Constants.Operator.Equals, session.User.Id)
-                                            .Get())
-                                            .Models.FirstOrDefault();
+                    var response = await _client.From<User>()
+                                                .Filter("user_id", Postgrest.Constants.Operator.Equals, supabaseUserId.ToString())
+                                                .Get();
 
+                    var user = response.Models.FirstOrDefault();
                     if (user == null)
                     {
                         Console.WriteLine("[DEBUG] Authenticated query returned no profile row.");
@@ -129,5 +136,32 @@ namespace PetWise_API.Controllers
                 return StatusCode(500, new { message = ex.Message });
             }
         }
+
+        [HttpPost("/Auth/ForgotPassword")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.email))
+                return BadRequest(new { message = "Email is required." });
+
+            try
+            {
+                await _client.Auth.ResetPasswordForEmail(request.email);
+
+                
+                return Ok(new
+                {
+                    message = "If the email exists, a reset link has been sent."
+                });
+            }
+            catch (Exception)
+            {
+                // Don't leak errors or email existence
+                return Ok(new
+                {
+                    message = "If the email exists, a reset link has been sent."
+                });
+            }
+        }
+        #endregion
     }
 }

@@ -79,19 +79,18 @@ namespace PetWise_API.Controllers
 
         // GET /Pet?user_id=2
         [HttpGet("/Pet")]
-        public async Task<IActionResult> GetPetsByUser([FromQuery] int user_id)
+        public async Task<IActionResult> GetPetsByUser([FromQuery] Guid user_id)
         {
-            // 1️⃣ Use .Filter() to translate query param for PostgREST
+            // Pass the Guid as string so Postgrest accepts it as a criterion
             var response = await _client.From<Pet>()
-                                        .Filter("user_id", Postgrest.Constants.Operator.Equals, user_id)
-                                        .Get();
+                                .Filter("user_id", Postgrest.Constants.Operator.Equals, user_id.ToString())
+                                .Get();
 
             var pets = response.Models;
 
             if (!pets.Any())
                 return NotFound(new { message = "No pets found for this user." });
 
-            // 2️⃣ Map to DTOs
             var petDtos = pets.Select(p => new PetResponse
             {
                 pet_id = p.pet_id,

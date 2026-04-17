@@ -6,7 +6,7 @@
        
         public string species { get; set; }
         
-        public string user_id { get; set; }
+        public Guid user_id { get; set; }
         
         public DateTime birthday { get; set; }
        

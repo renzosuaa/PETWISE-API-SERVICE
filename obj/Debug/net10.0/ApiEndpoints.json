@@ -81,6 +81,22 @@
   },
   {
     "ContainingType": "PetWise_API.Controllers.AuthController",
+    "Method": "ForgotPassword",
+    "RelativePath": "Auth/ForgotPassword",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "PetWise_API.Contracts.Auth.ForgotPasswordRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PetWise_API.Controllers.AuthController",
     "Method": "SignIn",
     "RelativePath": "Auth/Signin",
     "HttpMethod": "POST",
@@ -217,7 +233,7 @@
     "Parameters": [
       {
         "Name": "user_id",
-        "Type": "System.Int32",
+        "Type": "System.Guid",
         "IsRequired": false
       }
     ],
@@ -249,7 +265,28 @@
     "Parameters": [
       {
         "Name": "user_id",
-        "Type": "System.String",
+        "Type": "System.Guid",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PetWise_API.Controllers.UserController",
+    "Method": "PatchUser",
+    "RelativePath": "User/{user_id}",
+    "HttpMethod": "PATCH",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "user_id",
+        "Type": "System.Guid",
+        "IsRequired": true
+      },
+      {
+        "Name": "request",
+        "Type": "PetWise_API.Contracts.User.UpdateUserRequest",
         "IsRequired": true
       }
     ],
