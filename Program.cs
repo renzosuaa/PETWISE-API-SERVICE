@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Supabase;
+using System.Reflection.Metadata.Ecma335;
 using System.Text;
 
 public partial class Program
@@ -60,6 +61,7 @@ public partial class Program
 
         app.UseAuthentication();   
         app.UseAuthorization();
+        app.MapGet("/Health", () => Results.Ok("API is Healthy"));
 
         app.MapControllers();
 
