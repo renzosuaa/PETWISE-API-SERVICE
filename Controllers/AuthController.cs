@@ -28,51 +28,38 @@ namespace PetWise_API.Controllers
                 var session = await _client.Auth.SignUp(request.email, request.password);
 
                 if (session.User == null)
-                    return BadRequest(new { message = "Could not create auth user." });
+                    return BadRequest(new { message = "Failed to create user." });
 
-                if (!Guid.TryParse(session.User.Id, out var supabaseUserId))
-                    return StatusCode(500, new { message = "Invalid user id format from auth provider." });
+                if (!Guid.TryParse(session.User.Id, out var userId))
+                    return StatusCode(500, new { message = "Invalid user ID format." });
 
-                // Only set session if tokens are present
-                if (!string.IsNullOrEmpty(session.AccessToken) && !string.IsNullOrEmpty(session.RefreshToken))
+                var user = new User
                 {
-                    await _client.Auth.SetSession(session.AccessToken, session.RefreshToken);
+                    user_id = userId,
+                    email = request.email,
+                    created_at = DateTime.UtcNow
+                };
 
-                    var user = new User
-                    {
-                        user_id = supabaseUserId,
-                        first_name = request.first_name,
-                        last_name = request.last_name,
-                        email = request.email,
-                        created_at = DateTime.UtcNow,
-                    };
+                await _client.From<User>().Insert(user);
 
-                    await _client.From<User>().Insert(user);
-
-                    return Ok(new AuthResponse
-                    {
-                        user_id = user.user_id,
-                        email = user.email,
-                        access_token = session.AccessToken
-                    });
-                }
-
-                // No tokens: likely confirmable signup — do not attempt authenticated DB writes
                 return Ok(new
                 {
-                    user_id = supabaseUserId,
-                    email = request.email,
-                    message = "Sign-up created. Please confirm your email before signing in."
+                    user.user_id,
+                    user.email,
+                    message = "Signup successful. Please verify your email."
                 });
             }
             catch (Postgrest.Exceptions.PostgrestException ex)
             {
-                return StatusCode(500, new { message = ex.Message });
+                return StatusCode(500, new { message = "Database error.", error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Unexpected error.", error = ex.Message });
             }
         }
 
 
-        // Diagnostic SignIn — use Guid and pass string criterion to Postgrest
         [HttpPost("/Auth/Signin")]
         public async Task<IActionResult> SignIn(SigninRequest request)
         {
@@ -80,60 +67,37 @@ namespace PetWise_API.Controllers
             {
                 var session = await _client.Auth.SignIn(request.email, request.password);
 
-                if (session.User == null)
-                    return Unauthorized(new { message = "Invalid credentials." });
+                if (session.User == null || string.IsNullOrEmpty(session.AccessToken))
+                    return Unauthorized(new { message = "Invalid email or password." });
 
-                //// Log session info for debugging
-                //Console.WriteLine($"[DEBUG] SignIn: UserId={session.User.Id}");
-                //Console.WriteLine($"[DEBUG] AccessToken present={!string.IsNullOrEmpty(session.AccessToken)} Length={(session.AccessToken ?? "").Length}");
-                //Console.WriteLine($"[DEBUG] RefreshToken present={!string.IsNullOrEmpty(session.RefreshToken)} Length={(session.RefreshToken ?? "").Length}");
+                if (!Guid.TryParse(session.User.Id, out var userId))
+                    return StatusCode(500, new { message = "Invalid user ID format." });
 
-                if (!Guid.TryParse(session.User.Id, out var supabaseUserId))
-                    return StatusCode(500, new { message = "Invalid user id format from auth provider." });
+                await _client.Auth.SetSession(session.AccessToken, session.RefreshToken);
 
-                if (!string.IsNullOrEmpty(session.AccessToken) && !string.IsNullOrEmpty(session.RefreshToken))
+                var response = await _client.From<User>()
+                    .Filter("user_id", Postgrest.Constants.Operator.Equals, userId.ToString())
+                    .Get();
+
+                var user = response.Models.FirstOrDefault();
+
+                if (user == null)
+                    return NotFound(new { message = "User profile not found." });
+
+                return Ok(new AuthResponse
                 {
-                    await _client.Auth.SetSession(session.AccessToken, session.RefreshToken);
-                    Console.WriteLine("[DEBUG] SetSession completed.");
-                }
-                else
-                {
-                    Console.WriteLine("[DEBUG] No tokens returned from SignIn.");
-                    return StatusCode(500, new { message = "Sign-in succeeded but no session tokens issued." });
-                }
-
-                // Use string criterion for Postgrest filter
-                try
-                {
-                    var response = await _client.From<User>()
-                                                .Filter("user_id", Postgrest.Constants.Operator.Equals, supabaseUserId.ToString())
-                                                .Get();
-
-                    var user = response.Models.FirstOrDefault();
-                    if (user == null)
-                    {
-                        Console.WriteLine("[DEBUG] Authenticated query returned no profile row.");
-                        return NotFound(new { message = "User profile not found." });
-                    }
-
-                    return Ok(new AuthResponse
-                    {
-                        user_id = user.user_id,
-                        email = user.email,
-                        access_token = session.AccessToken
-                    });
-                }
-                catch (Postgrest.Exceptions.PostgrestException pex)
-                {
-                    // Log Postgrest error details
-                    Console.WriteLine($"[DEBUG] PostgrestException: Status={pex.StatusCode} Message={pex.Message}");
-                    return StatusCode(pex.StatusCode == 0 ? 500 : (int)pex.StatusCode, new { message = pex.Message });
-                }
+                    user_id = user.user_id,
+                    email = user.email,
+                    access_token = session.AccessToken
+                });
+            }
+            catch (Postgrest.Exceptions.PostgrestException ex)
+            {
+                return StatusCode(500, new { message = "Database error.", error = ex.Message });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[DEBUG] SignIn exception: {ex}");
-                return StatusCode(500, new { message = ex.Message });
+                return StatusCode(500, new { message = "Unexpected error.", error = ex.Message });
             }
         }
 
