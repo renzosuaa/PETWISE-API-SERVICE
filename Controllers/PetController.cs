@@ -12,10 +12,13 @@ namespace PetWise_API.Controllers
     [ApiController]
     public class PetController : ControllerBase
     {
+        private readonly string _anonKey;
+
         private readonly Supabase.Client _client;
-        public PetController(Supabase.Client client)
+        public PetController(Supabase.Client client, IConfiguration configuration)
         {
             _client = client;
+            _anonKey = configuration["Supabase:AnonKey"]!;
         }
 
         #region POST
@@ -81,7 +84,7 @@ namespace PetWise_API.Controllers
         [HttpGet("/Pet")]
         public async Task<IActionResult> GetPetsByUser([FromQuery] Guid user_id)
         {
-            // Pass the Guid as string so Postgrest accepts it as a criterion
+            
             var response = await _client.From<Pet>()
                                 .Filter("user_id", Postgrest.Constants.Operator.Equals, user_id.ToString())
                                 .Get();
@@ -103,6 +106,70 @@ namespace PetWise_API.Controllers
             }).ToList();
 
             return Ok(petDtos);
+        }
+
+        #endregion
+
+        #region UPDATE
+
+        [HttpPatch("/Pet/{pet_id}")]
+        public async Task<IActionResult> PatchPet(int pet_id, [FromBody] UpdatePetRequest request)
+        {
+            var token = Request.Headers["Authorization"]
+                               .ToString()
+                               .Replace("Bearer ", "");
+
+            if (string.IsNullOrEmpty(token))
+                return Unauthorized("No token provided.");
+
+            _client.Postgrest.GetHeaders = () => new Dictionary<string, string>
+                {
+                    { "Authorization", $"Bearer {token}" },
+                    { "apikey", _anonKey }
+                };
+
+            var existingResponse = await _client.From<Pet>()
+                                                .Where(p => p.pet_id == pet_id)
+                                                .Single();
+
+            var existing = existingResponse;
+
+            if (existing == null)
+                return NotFound();
+
+
+            if (request.name != null)
+                existing.name = request.name;
+
+            if (request.species != null)
+                existing.species = request.species;
+
+            if (request.birthday != null)
+                existing.birthday = (DateTime)request.birthday;
+
+            if (request.sex != null)
+                existing.sex = request.sex;
+           
+
+            var response = await _client.From<Pet>()
+                                        .Where(p => p.pet_id == pet_id)
+                                        .Update(existing);
+
+            var updatedPet = response.Models.FirstOrDefault();
+
+            if (updatedPet == null)
+                return NotFound();
+
+            return Ok(new PetResponse
+            {
+                pet_id = updatedPet.pet_id,
+                name = updatedPet.name,
+                species = updatedPet.species,
+                birthday = updatedPet.birthday,
+                sex = updatedPet.sex,
+                created_at = updatedPet.created_at,
+                user_id = updatedPet.user_id
+            });
         }
 
         #endregion
