@@ -10,6 +10,10 @@
         
         public DateTime birthday { get; set; }
        
-        public string sex { get; set; }
+        public string sex { get; set; } 
+
+        public string breed { get; set; }
+
+        public float weight { get; set; }
     }
 }

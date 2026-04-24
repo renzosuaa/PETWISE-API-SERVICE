@@ -26,5 +26,12 @@ namespace PetWise_API.Models
 
         [Column("created_at")]
         public DateTime created_at { get; set; }
+
+        [Column("breed")]
+        public string breed { get; set; }
+
+        [Column("weight")]
+        public float weight { get; set; }
+
     }
 }
