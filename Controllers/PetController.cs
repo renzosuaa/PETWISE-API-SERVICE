@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using PetWise_API.Contracts.Pet;
-using PetWise_API.Contracts.User;
 using PetWise_API.Models;
 
 namespace PetWise_API.Controllers
@@ -13,8 +12,8 @@ namespace PetWise_API.Controllers
     public class PetController : ControllerBase
     {
         private readonly string _anonKey;
-
         private readonly Supabase.Client _client;
+
         public PetController(Supabase.Client client, IConfiguration configuration)
         {
             _client = client;
@@ -27,6 +26,13 @@ namespace PetWise_API.Controllers
         {
             try
             {
+                // VALIDATION (NEW - REQUIRED because breed/weight are strict now)
+                if (string.IsNullOrWhiteSpace(request.breed))
+                    return BadRequest(new { message = "Breed is required." });
+
+                if (request.weight <= 0)
+                    return BadRequest(new { message = "Weight must be greater than 0." });
+
                 var pet = new Pet
                 {
                     name = request.name,
@@ -59,7 +65,7 @@ namespace PetWise_API.Controllers
         }
         #endregion
 
-        #region GET
+        #region GET SINGLE PET
         [HttpGet("/Pet/{pet_id}")]
         public async Task<IActionResult> GetPet(int pet_id)
         {
@@ -81,7 +87,7 @@ namespace PetWise_API.Controllers
                     species = pet.species,
                     birthday = pet.birthday,
                     sex = pet.sex,
-                    breed = pet.breed,
+                    breed = pet.breed ?? "",
                     weight = pet.weight,
                     created_at = pet.created_at,
                     user_id = pet.user_id
@@ -92,8 +98,9 @@ namespace PetWise_API.Controllers
                 return StatusCode(500, new { message = "Error retrieving pet.", error = ex.Message });
             }
         }
+        #endregion
 
-       
+        #region GET BY USER
         [HttpGet("/Pet")]
         public async Task<IActionResult> GetPetsByUser([FromQuery] Guid user_id)
         {
@@ -117,7 +124,7 @@ namespace PetWise_API.Controllers
                     sex = p.sex,
                     created_at = p.created_at,
                     user_id = p.user_id,
-                    breed = p.breed,
+                    breed = p.breed ?? "",
                     weight = p.weight
                 });
 
@@ -128,11 +135,9 @@ namespace PetWise_API.Controllers
                 return StatusCode(500, new { message = "Error retrieving pets.", error = ex.Message });
             }
         }
-
         #endregion
 
         #region UPDATE
-
         [HttpPatch("/Pet/{pet_id}")]
         public async Task<IActionResult> PatchPet(int pet_id, [FromBody] UpdatePetRequest request)
         {
@@ -147,7 +152,6 @@ namespace PetWise_API.Controllers
                 if (existing == null)
                     return NotFound(new { message = "Pet not found." });
 
-               
                 if (!string.IsNullOrEmpty(request.name))
                     existing.name = request.name;
 
@@ -161,7 +165,12 @@ namespace PetWise_API.Controllers
                     existing.breed = request.breed;
 
                 if (request.weight.HasValue)
+                {
+                    if (request.weight <= 0)
+                        return BadRequest(new { message = "Invalid weight." });
+
                     existing.weight = request.weight.Value;
+                }
 
                 if (!string.IsNullOrEmpty(request.sex))
                     existing.sex = request.sex;
@@ -182,7 +191,7 @@ namespace PetWise_API.Controllers
                     species = updated.species,
                     birthday = updated.birthday,
                     sex = updated.sex,
-                    breed = updated.breed,
+                    breed = updated.breed ?? "",
                     weight = updated.weight,
                     created_at = updated.created_at,
                     user_id = updated.user_id
