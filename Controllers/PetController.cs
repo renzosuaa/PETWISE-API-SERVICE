@@ -22,17 +22,29 @@ namespace PetWise_API.Controllers
 
         #region POST
         [HttpPost("/Pet/")]
-        public async Task<IActionResult> CreateUser(CreatePetRequest request)
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> CreatePet([FromBody] CreatePetRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.name))
+                return BadRequest(new { message = "Pet name is required." });
+
+            if (string.IsNullOrWhiteSpace(request.species))
+                return BadRequest(new { message = "Species is required." });
+
+            if (string.IsNullOrWhiteSpace(request.breed))
+                return BadRequest(new { message = "Breed is required." });
+
+            if (request.weight <= 0)
+                return UnprocessableEntity(new { message = "Weight must be greater than 0." });
+
+            if (request.user_id == Guid.Empty)
+                return BadRequest(new { message = "A valid user ID is required." });
+
             try
             {
-                // VALIDATION (NEW - REQUIRED because breed/weight are strict now)
-                if (string.IsNullOrWhiteSpace(request.breed))
-                    return BadRequest(new { message = "Breed is required." });
-
-                if (request.weight <= 0)
-                    return BadRequest(new { message = "Weight must be greater than 0." });
-
                 var pet = new Pet
                 {
                     name = request.name,
@@ -46,29 +58,39 @@ namespace PetWise_API.Controllers
                 };
 
                 var response = await _client.From<Pet>().Insert(pet);
-
                 var newPet = response.Models.FirstOrDefault();
 
                 if (newPet == null)
-                    return StatusCode(500, new { message = "Failed to create pet." });
+                    return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Failed to create pet." });
 
-                return Ok(new { newPet.pet_id });
+                return StatusCode(StatusCodes.Status201Created, new { newPet.pet_id });
             }
             catch (Postgrest.Exceptions.PostgrestException ex) when (ex.Message.Contains("violates foreign key constraint"))
             {
-                return Conflict(new { message = "User ID doesn't exist." });
+                return Conflict(new { message = "The provided user ID does not exist." });
+            }
+            catch (Postgrest.Exceptions.PostgrestException ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Database error.", error = ex.Message });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Unexpected error.", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Unexpected error.", error = ex.Message });
             }
         }
         #endregion
 
         #region GET SINGLE PET
-        [HttpGet("/Pet/{pet_id}")]
+        [HttpGet("/Pet/{pet_id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetPet(int pet_id)
         {
+            if (pet_id <= 0)
+                return BadRequest(new { message = "Pet ID must be a positive integer." });
+
             try
             {
                 var response = await _client.From<Pet>()
@@ -78,7 +100,7 @@ namespace PetWise_API.Controllers
                 var pet = response.Models.FirstOrDefault();
 
                 if (pet == null)
-                    return NotFound(new { message = "Pet not found." });
+                    return NotFound(new { message = $"No pet found with ID {pet_id}." });
 
                 return Ok(new PetResponse
                 {
@@ -93,17 +115,28 @@ namespace PetWise_API.Controllers
                     user_id = pet.user_id
                 });
             }
+            catch (Postgrest.Exceptions.PostgrestException ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Database error.", error = ex.Message });
+            }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error retrieving pet.", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error retrieving pet.", error = ex.Message });
             }
         }
         #endregion
 
         #region GET BY USER
         [HttpGet("/Pet")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetPetsByUser([FromQuery] Guid user_id)
         {
+            if (user_id == Guid.Empty)
+                return BadRequest(new { message = "A valid user ID is required." });
+
             try
             {
                 var response = await _client.From<Pet>()
@@ -112,8 +145,9 @@ namespace PetWise_API.Controllers
 
                 var pets = response.Models;
 
+                // 204 is more accurate than 404 — the user exists, they just have no pets
                 if (pets == null || !pets.Any())
-                    return NotFound(new { message = "No pets found for this user." });
+                    return NoContent();
 
                 var result = pets.Select(p => new PetResponse
                 {
@@ -130,17 +164,40 @@ namespace PetWise_API.Controllers
 
                 return Ok(result);
             }
+            catch (Postgrest.Exceptions.PostgrestException ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Database error.", error = ex.Message });
+            }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error retrieving pets.", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error retrieving pets.", error = ex.Message });
             }
         }
         #endregion
 
         #region UPDATE
-        [HttpPatch("/Pet/{pet_id}")]
+        [HttpPatch("/Pet/{pet_id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> PatchPet(int pet_id, [FromBody] UpdatePetRequest request)
         {
+            if (pet_id <= 0)
+                return BadRequest(new { message = "Pet ID must be a positive integer." });
+
+            // Reject empty PATCH body — nothing to update
+            if (request == null)
+                return BadRequest(new { message = "Request body is required." });
+
+            if (request.weight.HasValue && request.weight <= 0)
+                return UnprocessableEntity(new { message = "Weight must be greater than 0." });
+
+            if (!string.IsNullOrEmpty(request.sex) &&
+                request.sex != "Male" && request.sex != "Female")
+                return UnprocessableEntity(new { message = "Sex must be 'Male' or 'Female'." });
+
             try
             {
                 var existingResponse = await _client.From<Pet>()
@@ -150,7 +207,7 @@ namespace PetWise_API.Controllers
                 var existing = existingResponse.Models.FirstOrDefault();
 
                 if (existing == null)
-                    return NotFound(new { message = "Pet not found." });
+                    return NotFound(new { message = $"No pet found with ID {pet_id}." });
 
                 if (!string.IsNullOrEmpty(request.name))
                     existing.name = request.name;
@@ -165,12 +222,7 @@ namespace PetWise_API.Controllers
                     existing.breed = request.breed;
 
                 if (request.weight.HasValue)
-                {
-                    if (request.weight <= 0)
-                        return BadRequest(new { message = "Invalid weight." });
-
                     existing.weight = request.weight.Value;
-                }
 
                 if (!string.IsNullOrEmpty(request.sex))
                     existing.sex = request.sex;
@@ -182,7 +234,7 @@ namespace PetWise_API.Controllers
                 var updated = response.Models.FirstOrDefault();
 
                 if (updated == null)
-                    return StatusCode(500, new { message = "Update failed." });
+                    return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Update failed." });
 
                 return Ok(new PetResponse
                 {
@@ -197,9 +249,57 @@ namespace PetWise_API.Controllers
                     user_id = updated.user_id
                 });
             }
+            catch (Postgrest.Exceptions.PostgrestException ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Database error.", error = ex.Message });
+            }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Error updating pet.", error = ex.Message });
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error updating pet.", error = ex.Message });
+            }
+        }
+        #endregion
+
+        #region DELETE
+        [HttpDelete("/Pet/{pet_id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DeletePet(int pet_id)
+        {
+            if (pet_id <= 0)
+                return BadRequest(new { message = "Pet ID must be a positive integer." });
+
+            try
+            {
+                var existingResponse = await _client.From<Pet>()
+                                                    .Where(p => p.pet_id == pet_id)
+                                                    .Get();
+
+                var existing = existingResponse.Models.FirstOrDefault();
+
+                if (existing == null)
+                    return NotFound(new { message = $"No pet found with ID {pet_id}." });
+
+                await _client.From<Pet>()
+                             .Where(p => p.pet_id == pet_id)
+                             .Delete();
+
+                return Ok(new { message = $"Pet with ID {pet_id} has been deleted." });
+            }
+            catch (Postgrest.Exceptions.PostgrestException ex) when (ex.Message.Contains("violates foreign key constraint"))
+            {
+                // e.g. pet has related records (appointments, health logs, etc.) that must be removed first
+                return Conflict(new { message = "Cannot delete pet because it has related records. Remove them first." });
+            }
+            catch (Postgrest.Exceptions.PostgrestException ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Database error.", error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Unexpected error.", error = ex.Message });
             }
         }
         #endregion
