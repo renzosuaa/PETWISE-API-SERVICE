@@ -34,6 +34,8 @@ namespace PetWise_API.Controllers
                     birthday = request.birthday,
                     user_id = request.user_id,
                     sex = request.sex,
+                    breed = request.breed,
+                    weight = request.weight,
                     created_at = DateTime.UtcNow,
                 };
 
@@ -44,7 +46,7 @@ namespace PetWise_API.Controllers
                 if (newPet == null)
                     return StatusCode(500, new { message = "Failed to create pet." });
 
-                return Ok(new { pet_id = newPet.pet_id });
+                return Ok(new { newPet.pet_id });
             }
             catch (Postgrest.Exceptions.PostgrestException ex) when (ex.Message.Contains("violates foreign key constraint"))
             {
@@ -79,6 +81,8 @@ namespace PetWise_API.Controllers
                     species = pet.species,
                     birthday = pet.birthday,
                     sex = pet.sex,
+                    breed = pet.breed,
+                    weight = pet.weight,
                     created_at = pet.created_at,
                     user_id = pet.user_id
                 });
@@ -112,7 +116,9 @@ namespace PetWise_API.Controllers
                     birthday = p.birthday,
                     sex = p.sex,
                     created_at = p.created_at,
-                    user_id = p.user_id
+                    user_id = p.user_id,
+                    breed = p.breed,
+                    weight = p.weight
                 });
 
                 return Ok(result);
@@ -151,6 +157,12 @@ namespace PetWise_API.Controllers
                 if (request.birthday.HasValue)
                     existing.birthday = request.birthday.Value;
 
+                if (!string.IsNullOrEmpty(request.breed))
+                    existing.breed = request.breed;
+
+                if (request.weight.HasValue)
+                    existing.weight = request.weight.Value;
+
                 if (!string.IsNullOrEmpty(request.sex))
                     existing.sex = request.sex;
 
@@ -170,6 +182,8 @@ namespace PetWise_API.Controllers
                     species = updated.species,
                     birthday = updated.birthday,
                     sex = updated.sex,
+                    breed = updated.breed,
+                    weight = updated.weight,
                     created_at = updated.created_at,
                     user_id = updated.user_id
                 });
