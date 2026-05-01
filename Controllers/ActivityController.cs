@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using PetWise_API.Contracts.Activity;
-using PetWise_API.Contracts.Pet;
 using PetWise_API.Models;
 
 namespace PetWise_API.Controllers
@@ -19,10 +18,22 @@ namespace PetWise_API.Controllers
         }
 
         #region POST
-
         [HttpPost("/Activity")]
-        public async Task<IActionResult> CreateActivity(CreateActivityRequest request)
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> CreateActivity([FromBody] CreateActivityRequest request)
         {
+            if (request == null)
+                return BadRequest(new { message = "Request body is required." });
+
+            if (string.IsNullOrWhiteSpace(request.title))
+                return BadRequest(new { message = "Activity title is required." });
+
+            if (request.pet_id <= 0)
+                return BadRequest(new { message = "A valid Pet ID is required." });
+
             try
             {
                 var activity = new Activity
@@ -30,137 +41,155 @@ namespace PetWise_API.Controllers
                     description = request.description,
                     pet_id = request.pet_id,
                     recurrence = request.recurrence,
-                    scheduled_date = request.scheduled_date,
-                    is_completed = false,
+                    time_scheduled = request.time_scheduled,
+                    is_active = true, // Default to true for new activities
                     title = request.title,
                     created_at = DateTime.UtcNow
                 };
 
                 var response = await _client.From<Activity>().Insert(activity);
+                var newActivity = response.Models.FirstOrDefault();
 
-                var newActivity = response.Models.First();
+                if (newActivity == null)
+                    return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Failed to create activity." });
 
-                return Ok(newActivity.activity_id);
-
+                // Standard practice is to return the created object or its ID with a 201 status
+                return StatusCode(StatusCodes.Status201Created, new { newActivity.activity_id });
             }
             catch (Postgrest.Exceptions.PostgrestException ex) when (ex.Message.Contains("violates foreign key constraint"))
             {
-                // Will be triggered if the user_id provided doesn't exist in the users table
-                return Conflict(new { message = "Pet Id doesn't exist" });
+                return Conflict(new { message = "The provided Pet ID does not exist." });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error creating activity.", error = ex.Message });
             }
         }
-
         #endregion
 
         #region GET
-        [HttpGet("/Activity/{activity_id}")]
+        [HttpGet("/Activity/{activity_id:int}")]
         public async Task<IActionResult> GetActivity(int activity_id)
         {
-            var response = await _client.From<Activity>()
-                                        .Where(a => a.activity_id == activity_id)
-                                        .Get();
+            if (activity_id <= 0)
+                return BadRequest(new { message = "Activity ID must be a positive integer." });
 
-            var activity = response.Models.FirstOrDefault();
-            if (activity == null)
-                return NotFound();
-
-            var dto = new ActivityResponse
+            try
             {
-                activity_id = activity_id,
-                pet_id = activity.pet_id,
-                recurrence = activity.recurrence,
-                created_at = activity.created_at,
-                title = activity.title,
-                description = activity.description,
-                scheduled_date = activity.scheduled_date,
-                is_completed = activity.is_completed
-            };
+                var response = await _client.From<Activity>()
+                                            .Where(a => a.activity_id == activity_id)
+                                            .Get();
 
-            return Ok(dto);
+                var activity = response.Models.FirstOrDefault();
+                if (activity == null)
+                    return NotFound(new { message = $"No activity found with ID {activity_id}." });
+
+                return Ok(new ActivityResponse
+                {
+                    activity_id = activity.activity_id,
+                    pet_id = activity.pet_id,
+                    recurrence = activity.recurrence,
+                    created_at = activity.created_at,
+                    title = activity.title,
+                    description = activity.description,
+                    time_scheduled = activity.time_scheduled,
+                    is_active = activity.is_active
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Error retrieving activity.", error = ex.Message });
+            }
         }
+        #endregion
 
-        // GET /Activity?pet_id=2
-        [HttpGet("/Activity")]
-        public async Task<IActionResult> GetPetsByUser([FromQuery] int pet_id)
+        #region PATCH
+        [HttpPatch("/Activity/{activity_id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> PatchActivity(int activity_id, [FromBody] UpdateActivityRequest request)
         {
-            // 1️⃣ Use .Filter() to translate query param for PostgREST
-            var response = await _client.From<Activity>()
-                                        .Filter("pet_id", Postgrest.Constants.Operator.Equals, pet_id)
-                                        .Get();
+            if (activity_id <= 0)
+                return BadRequest(new { message = "Activity ID must be a positive integer." });
 
-            var activities = response.Models;
+            if (request == null)
+                return BadRequest(new { message = "Request body is required." });
 
-            if (!activities.Any())
-                return NotFound(new { message = "No Activities found for this pet." });
-
-            // 2️⃣ Map to DTOs
-            var activityDtos = activities.Select(p => new ActivityResponse
+            try
             {
-                activity_id = p.activity_id,
-                pet_id = p.pet_id,
-                created_at = p.created_at,
-                title = p.title,
-                description = p.description,
-                scheduled_date = p.scheduled_date,
-                is_completed = p.is_completed,
-                recurrence = p.recurrence
+                var existingResponse = await _client.From<Activity>()
+                                                     .Where(a => a.activity_id == activity_id)
+                                                     .Get();
 
-            }).ToList();
+                var existing = existingResponse.Models.FirstOrDefault();
 
-            return Ok(activityDtos);
+                if (existing == null)
+                    return NotFound(new { message = $"No activity found with ID {activity_id}." });
+
+                // Apply updates
+                if (request.title != null) existing.title = request.title;
+                if (request.description != null) existing.description = request.description;
+                if (request.time_scheduled.HasValue) existing.time_scheduled = request.time_scheduled.Value;
+                if (request.recurrence != null) existing.recurrence = request.recurrence;
+                if (request.is_active.HasValue) existing.is_active = request.is_active.Value;
+
+                var response = await _client.From<Activity>()
+                                             .Where(a => a.activity_id == activity_id)
+                                             .Update(existing);
+
+                var updated = response.Models.FirstOrDefault();
+
+                if (updated == null)
+                    return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Update failed." });
+
+                return Ok(new ActivityResponse
+                {
+                    activity_id = updated.activity_id,
+                    pet_id = updated.pet_id,
+                    title = updated.title,
+                    description = updated.description,
+                    time_scheduled = updated.time_scheduled,
+                    recurrence = updated.recurrence,
+                    is_active = updated.is_active,
+                    created_at = updated.created_at
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Error updating activity.", error = ex.Message });
+            }
         }
         #endregion
 
         #region DELETE
-
-        [HttpDelete("/Activity/{activity_id}")]
+        [HttpDelete("/Activity/{activity_id:int}")]
         public async Task<IActionResult> DeleteActivity(int activity_id)
         {
-            var existing = await _client.From<Activity>()
-                            .Where(a => a.activity_id == activity_id)
-                            .Get();
+            if (activity_id <= 0)
+                return BadRequest(new { message = "Activity ID must be a positive integer." });
 
-            if (!existing.Models.Any())
-                return NotFound(new { message = "Activity not found." });
-
-            await _client.From<Activity>()
-                         .Where(a => a.activity_id == activity_id)
-                         .Delete();
-
-            return Ok(new { message = $"Activity {activity_id} deleted successfully." });
-        }
-
-        #endregion
-
-        #region PATCH
-
-        [HttpPatch("/Activity/{activity_id}/complete")]
-        public async Task<IActionResult> CompleteActivity(int activity_id)
-        {
             try
             {
+                var existing = await _client.From<Activity>()
+                                .Where(a => a.activity_id == activity_id)
+                                .Get();
+
+                if (!existing.Models.Any())
+                    return NotFound(new { message = $"Activity with ID {activity_id} not found." });
+
                 await _client.From<Activity>()
                              .Where(a => a.activity_id == activity_id)
-                             .Set(a => a.is_completed, true)
-                             .Update();
+                             .Delete();
 
-                return Ok(new { message = "Activity marked as completed." });
+                return Ok(new { message = $"Activity {activity_id} deleted successfully." });
             }
-            catch (Postgrest.Exceptions.PostgrestException ex)
+            catch (Exception ex)
             {
-                return StatusCode(500, new { message = ex.Message });
+                return StatusCode(500, new { message = "Error deleting activity.", error = ex.Message });
             }
         }
-
         #endregion
     }
 }
-
-
-
-
-
-
-
-
-

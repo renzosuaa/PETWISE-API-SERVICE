@@ -8,7 +8,7 @@
  
         public string description { get; set; }
        
-        public DateTime scheduled_date { get; set; }
+        public TimeOnly time_scheduled { get; set; }
 
         public string recurrence { get; set; }
     }

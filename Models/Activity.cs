@@ -18,14 +18,14 @@ namespace PetWise_API.Models
         [Column("description")]
         public string description { get; set; }
 
-        [Column("scheduled_date")]
-        public DateTime scheduled_date { get; set; }
+        [Column("time_scheduled")]
+        public TimeOnly time_scheduled { get; set; }
 
         [Column("recurrence")]
         public string recurrence { get; set; }
 
-        [Column("is_completed")]
-        public bool is_completed { get; set; }
+        [Column("is_active")]
+        public bool is_active { get; set; }
 
         [Column("created_at")]
         public DateTime created_at { get; set; }
