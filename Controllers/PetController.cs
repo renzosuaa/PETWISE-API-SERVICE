@@ -141,11 +141,11 @@ namespace PetWise_API.Controllers
             {
                 var response = await _client.From<Pet>()
                     .Filter("user_id", Postgrest.Constants.Operator.Equals, user_id.ToString())
+                    .Filter("is_deleted", Postgrest.Constants.Operator.Equals, "false") 
                     .Get();
 
                 var pets = response.Models;
 
-                // 204 is more accurate than 404 — the user exists, they just have no pets
                 if (pets == null || !pets.Any())
                     return NoContent();
 
@@ -161,7 +161,7 @@ namespace PetWise_API.Controllers
                     breed = p.breed ?? "",
                     weight = p.weight
                 });
-
+                
                 return Ok(result);
             }
             catch (Postgrest.Exceptions.PostgrestException ex)
@@ -266,7 +266,7 @@ namespace PetWise_API.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> DeletePet(int pet_id)
+        public async Task<IActionResult> SoftDeletePet(int pet_id)
         {
             if (pet_id <= 0)
                 return BadRequest(new { message = "Pet ID must be a positive integer." });
@@ -279,22 +279,23 @@ namespace PetWise_API.Controllers
 
                 var existing = existingResponse.Models.FirstOrDefault();
 
-                if (existing == null)
-                    return NotFound(new { message = $"No pet found with ID {pet_id}." });
+               
+                if (existing == null || existing.is_deleted == true)
+                    return NotFound(new { message = $"No active pet found with ID {pet_id}." });
+
+               
+                existing.is_deleted = true;
 
                 await _client.From<Pet>()
                              .Where(p => p.pet_id == pet_id)
-                             .Delete();
+                             .Set(p => p.is_deleted, true)
+                             .Update();
 
-                return Ok(new { message = $"Pet with ID {pet_id} has been deleted." });
-            }
-            catch (Postgrest.Exceptions.PostgrestException ex) when (ex.Message.Contains("violates foreign key constraint"))
-            {
-                // e.g. pet has related records (appointments, health logs, etc.) that must be removed first
-                return Conflict(new { message = "Cannot delete pet because it has related records. Remove them first." });
+                return Ok(new { message = $"Pet with ID {pet_id} has been deactivated (soft-deleted)." });
             }
             catch (Postgrest.Exceptions.PostgrestException ex)
             {
+                
                 return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Database error.", error = ex.Message });
             }
             catch (Exception ex)
