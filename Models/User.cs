@@ -18,8 +18,6 @@ namespace PetWise_API.Models
         [Column("email")]
         public string email { get; set; }
 
-        [Column("password")]
-        public string password { get; set; }
 
         [Column("nickname")]
         public string nickname { get; set; }
