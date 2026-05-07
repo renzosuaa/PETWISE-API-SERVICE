@@ -101,6 +101,53 @@ namespace PetWise_API.Controllers
                 return StatusCode(500, new { message = "Error retrieving activity.", error = ex.Message });
             }
         }
+
+        [HttpGet("/Activity/Pet/{pet_id:int}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetActivitiesByPet(int pet_id)
+        {
+            if (pet_id <= 0)
+                return BadRequest(new { message = "Pet ID must be a positive integer." });
+
+            try
+            {
+             
+                var response = await _client.From<Activity>()
+                                            .Where(a => a.pet_id == pet_id)
+                                            .Get();
+
+                var activities = response.Models;
+
+               
+                if (activities == null || !activities.Any())
+                    return NoContent();
+
+                var result = activities.Select(a => new ActivityResponse
+                {
+                    activity_id = a.activity_id,
+                    pet_id = a.pet_id,
+                    title = a.title,
+                    description = a.description,
+                    time_scheduled = a.time_scheduled,
+                    recurrence = a.recurrence,
+                    is_active = a.is_active,
+                    created_at = a.created_at
+                });
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    message = "Error retrieving activities for the specified pet.",
+                    error = ex.Message
+                });
+            }
+        }
         #endregion
 
         #region PATCH
