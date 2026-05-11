@@ -193,5 +193,44 @@ namespace PetWise_API.Controllers
         }
 
         #endregion
+
+        #region GoogleAuth
+        [HttpPost("/Auth/GoogleSignIn")]
+        public async Task<IActionResult> GoogleSignIn([FromBody] GoogleSignInRequest request)
+        {
+            try
+            {
+                // 1. Use Supabase to verify the Google ID Token
+                var session = await _client.Auth.SignInWithIdToken(Supabase.Gotrue.Constants.Provider.Google, request.idToken);
+
+                if (session?.User == null || string.IsNullOrEmpty(session.AccessToken))
+                    return Unauthorized(new { message = "Google authentication failed." });
+
+                var userId = Guid.Parse(session.User.Id);
+
+                // 2. Sync with your local User table (same as your Signup logic)
+                var response = await _client.From<User>().Filter("user_id", Postgrest.Constants.Operator.Equals, userId.ToString()).Get();
+                var user = response.Models.FirstOrDefault();
+
+                if (user == null)
+                {
+                    user = new User { user_id = userId, email = session.User.Email, created_at = DateTime.UtcNow };
+                    await _client.From<User>().Insert(user);
+                }
+
+                // 3. Return the exact same AuthResponse your Flutter app expects
+                return Ok(new AuthResponse
+                {
+                    user_id = user.user_id,
+                    email = user.email,
+                    access_token = session.AccessToken
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+        #endregion
     }
 }
