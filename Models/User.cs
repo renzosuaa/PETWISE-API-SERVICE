@@ -10,17 +10,17 @@ namespace PetWise_API.Models
         public Guid user_id { get; set; }
 
         [Column("first_name")]
-        public string first_name { get; set; }
+        public string? first_name { get; set; }
 
         [Column("last_name")]
-        public string last_name { get; set; }
+        public string? last_name { get; set; }
 
         [Column("email")]
-        public string email { get; set; }
+        public string? email { get; set; }
 
 
         [Column("nickname")]
-        public string nickname { get; set; }
+        public string? nickname { get; set; }
 
         [Column("created_at")]
         public DateTime created_at { get; set; }  

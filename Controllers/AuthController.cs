@@ -37,36 +37,21 @@ namespace PetWise_API.Controllers
                 if (session?.User == null)
                     return BadRequest(new { message = "Failed to create user." });
 
-                if (!Guid.TryParse(session.User.Id, out var userId))
-                    return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Invalid user ID format returned from auth provider." });
-
-                var user = new User
-                {
-                    user_id = userId,
-                    email = request.email,
-                    created_at = DateTime.UtcNow
-                };
-
-                await _client.From<User>().Insert(user);
-
+                
                 return StatusCode(StatusCodes.Status201Created, new
                 {
-                    user.user_id,
-                    user.email,
+                    user_id = session.User.Id,
+                    email = session.User.Email,
                     message = "Signup successful. Please verify your email."
                 });
             }
-            catch (Postgrest.Exceptions.PostgrestException ex) when (ex.Message.Contains("duplicate") || ex.Message.Contains("unique"))
+            catch (Supabase.Gotrue.Exceptions.GotrueException ex) when (ex.Message.Contains("already registered"))
             {
                 return Conflict(new { message = "An account with this email already exists." });
             }
-            catch (Postgrest.Exceptions.PostgrestException ex)
-            {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Database error.", error = ex.Message });
-            }
             catch (Exception ex)
             {
-                return StatusCode(StatusCodes.Status500InternalServerError, new { message = "Unexpected error.", error = ex.Message });
+                return StatusCode(500, new { message = "Unexpected error.", error = ex.Message });
             }
         }
 
