@@ -44,7 +44,7 @@ namespace PetWise_API.Controllers
             }
             catch (Postgrest.Exceptions.PostgrestException ex) when (ex.Message.Contains("violates foreign key constraint"))
             {
-                // Will be triggered if the user_id provided doesn't exist in the users table
+                
                 return Conflict(new { message = "Pet Id doesn't exist" });
             }
         }
@@ -91,7 +91,7 @@ namespace PetWise_API.Controllers
             if (!healthEvents.Any())
                 return NotFound(new { message = "No Health Events found for this pet." });
 
-            // 2️⃣ Map to DTOs
+            
             var healthEventDtos = healthEvents.Select(p => new HealthEventResponse
             {
                 pet_id = p.pet_id,

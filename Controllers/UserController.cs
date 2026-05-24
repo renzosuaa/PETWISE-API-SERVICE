@@ -75,6 +75,7 @@ namespace PetWise_API.Controllers
                     first_name = user.first_name,
                     last_name = user.last_name,
                     email = user.email,
+                    image_url = user.image_url,
                     nickname = user.nickname,
                     created_at = user.created_at
                 });
@@ -135,6 +136,9 @@ namespace PetWise_API.Controllers
                 if (!string.IsNullOrEmpty(request.last_name))
                     existing.last_name = request.last_name;
 
+                if (!string.IsNullOrEmpty(request.image_url))
+                    existing.image_url = request.image_url;
+
                 if (!string.IsNullOrEmpty(request.nickname))
                     existing.nickname = request.nickname;
 
@@ -154,6 +158,7 @@ namespace PetWise_API.Controllers
                     last_name = updatedUser.last_name,
                     nickname = updatedUser.nickname,
                     email = updatedUser.email,
+                    image_url = updatedUser.image_url,
                     created_at = updatedUser.created_at
                 });
             }

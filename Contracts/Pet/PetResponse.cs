@@ -19,6 +19,8 @@ namespace PetWise_API.Contracts.Pet
 
         public string breed { get; set; }
 
+        public string image_url { get; set; }
+
         public float weight { get; set; }
       
         public DateTime created_at { get; set; }

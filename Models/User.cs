@@ -18,12 +18,16 @@ namespace PetWise_API.Models
         [Column("email")]
         public string? email { get; set; }
 
+        [Column("image_url")]
+        public string? image_url { get; set; }
 
         [Column("nickname")]
         public string? nickname { get; set; }
 
         [Column("created_at")]
         public DateTime created_at { get; set; }  
+
+
 
     }
 }

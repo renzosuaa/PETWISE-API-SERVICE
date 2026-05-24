@@ -14,6 +14,8 @@
 
         public string breed { get; set; }
 
+        public string image_url { get; set; }
+
         public float weight { get; set; }
     }
 }

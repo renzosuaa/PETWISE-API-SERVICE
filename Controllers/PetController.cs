@@ -37,6 +37,9 @@ namespace PetWise_API.Controllers
             if (string.IsNullOrWhiteSpace(request.breed))
                 return BadRequest(new { message = "Breed is required." });
 
+            if (string.IsNullOrWhiteSpace(request.image_url))
+                return BadRequest(new { message = "Image URL is required." });
+
             if (request.weight <= 0)
                 return UnprocessableEntity(new { message = "Weight must be greater than 0." });
 
@@ -53,6 +56,7 @@ namespace PetWise_API.Controllers
                     user_id = request.user_id,
                     sex = request.sex,
                     breed = request.breed,
+                    image_url = request.image_url,
                     weight = request.weight,
                     created_at = DateTime.UtcNow,
                 };
@@ -112,7 +116,8 @@ namespace PetWise_API.Controllers
                     breed = pet.breed ?? "",
                     weight = pet.weight,
                     created_at = pet.created_at,
-                    user_id = pet.user_id
+                    user_id = pet.user_id,
+                    image_url = pet.image_url ?? ""
                 });
             }
             catch (Postgrest.Exceptions.PostgrestException ex)
@@ -158,6 +163,7 @@ namespace PetWise_API.Controllers
                     sex = p.sex,
                     created_at = p.created_at,
                     user_id = p.user_id,
+                    image_url = p.image_url ?? "",
                     breed = p.breed ?? "",
                     weight = p.weight
                 });
@@ -197,6 +203,10 @@ namespace PetWise_API.Controllers
             if (!string.IsNullOrEmpty(request.sex) &&
                 request.sex != "Male" && request.sex != "Female")
                 return UnprocessableEntity(new { message = "Sex must be 'Male' or 'Female'." });
+            if (!string.IsNullOrEmpty(request.name) && string.IsNullOrWhiteSpace(request.name))
+                return BadRequest(new { message = "Pet name cannot be empty." });
+            if (!string.IsNullOrEmpty(request.image_url) && string.IsNullOrWhiteSpace(request.image_url))
+                return BadRequest(new { message = "Image URL cannot be empty." });
 
             try
             {
@@ -226,6 +236,8 @@ namespace PetWise_API.Controllers
 
                 if (!string.IsNullOrEmpty(request.sex))
                     existing.sex = request.sex;
+                if (!string.IsNullOrEmpty(request.image_url))
+                    existing.image_url = request.image_url;
 
                 var response = await _client.From<Pet>()
                                             .Where(p => p.pet_id == pet_id)
@@ -244,6 +256,7 @@ namespace PetWise_API.Controllers
                     birthday = updated.birthday,
                     sex = updated.sex,
                     breed = updated.breed ?? "",
+                    image_url = updated.image_url ?? "",
                     weight = updated.weight,
                     created_at = updated.created_at,
                     user_id = updated.user_id

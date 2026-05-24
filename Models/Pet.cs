@@ -33,6 +33,9 @@ namespace PetWise_API.Models
         [Column("weight")]
         public float weight { get; set; }
 
+        [Column("image_url")]
+        public string image_url { get; set; }
+
         [Column("is_deleted")]
         public bool is_deleted { get; set; }
 
