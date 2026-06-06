@@ -39,5 +39,6 @@ namespace PetWise_API.Models
         [Column("is_deleted")]
         public bool is_deleted { get; set; }
 
+
     }
 }
