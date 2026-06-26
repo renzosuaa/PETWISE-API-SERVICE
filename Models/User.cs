@@ -25,9 +25,9 @@ namespace PetWise_API.Models
         public string? nickname { get; set; }
 
         [Column("created_at")]
-        public DateTime created_at { get; set; }  
+        public DateTime created_at { get; set; }
 
-
-
+        [Column("has_completed_setup")]
+        public bool has_completed_setup { get; set; }
     }
 }

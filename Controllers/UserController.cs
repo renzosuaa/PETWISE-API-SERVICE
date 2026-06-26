@@ -77,7 +77,8 @@ namespace PetWise_API.Controllers
                     email = user.email,
                     image_url = user.image_url,
                     nickname = user.nickname,
-                    created_at = user.created_at
+                    created_at = user.created_at,
+                    has_completed_setup = user.has_completed_setup
                 });
             }
             catch (Postgrest.Exceptions.PostgrestException ex)
@@ -107,10 +108,12 @@ namespace PetWise_API.Controllers
             if (request == null)
                 return BadRequest(new { message = "Request body is required." });
 
-            // Reject if all fields are empty — nothing to update
+            // Reject if all fields are null — nothing to update
             if (string.IsNullOrWhiteSpace(request.first_name) &&
                 string.IsNullOrWhiteSpace(request.last_name) &&
-                string.IsNullOrWhiteSpace(request.nickname))
+                string.IsNullOrWhiteSpace(request.nickname) &&
+                string.IsNullOrWhiteSpace(request.image_url) &&
+                request.has_completed_setup == null)
                 return UnprocessableEntity(new { message = "At least one field must be provided to update." });
 
             var token = ExtractToken();
@@ -142,6 +145,9 @@ namespace PetWise_API.Controllers
                 if (!string.IsNullOrEmpty(request.nickname))
                     existing.nickname = request.nickname;
 
+                if (request.has_completed_setup.HasValue)
+                    existing.has_completed_setup = request.has_completed_setup.Value;
+
                 var response = await _client.From<User>()
                                             .Where(u => u.user_id == user_id)
                                             .Update(existing);
@@ -159,7 +165,8 @@ namespace PetWise_API.Controllers
                     nickname = updatedUser.nickname,
                     email = updatedUser.email,
                     image_url = updatedUser.image_url,
-                    created_at = updatedUser.created_at
+                    created_at = updatedUser.created_at,
+                    has_completed_setup = updatedUser.has_completed_setup
                 });
             }
             catch (Postgrest.Exceptions.PostgrestException ex)

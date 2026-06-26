@@ -13,5 +13,6 @@
 
         public string image_url { get; set; }
         public DateTime created_at { get; set; }
+        public bool has_completed_setup { get; set; }
     }
 }
