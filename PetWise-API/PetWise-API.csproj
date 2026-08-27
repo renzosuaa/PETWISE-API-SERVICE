@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Petwise-Application\PetWise-Application.csproj" />
+    <ProjectReference Include="..\PetWise-Application\PetWise-Application.csproj" />
     <ProjectReference Include="..\PetWise-Domain\PetWise-Domain.csproj" />
     <ProjectReference Include="..\PetWise-Infrastructure\PetWise-Infrastructure.csproj" />
   </ItemGroup>
