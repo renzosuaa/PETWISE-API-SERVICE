@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="PetWise-API/PetWise-API.csproj" />
+  <Project Path="Petwise-Application/PetWise-Application.csproj" Id="ade20a5b-3e04-4a51-bac8-eb79a554403a" />
+  <Project Path="PetWise-Domain/PetWise-Domain.csproj" Id="d34d61ca-e722-42f9-9717-cc2277cb7dff" />
+  <Project Path="PetWise-Infrastructure/PetWise-Infrastructure.csproj" Id="727c7fe7-f4f8-4fcc-a232-09d94dbcd6a1" />
+</Solution>
