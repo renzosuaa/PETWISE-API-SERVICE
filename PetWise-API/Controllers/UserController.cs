@@ -22,7 +22,7 @@ public class UserController : ControllerBase
     }
 
     #region GET
-    [HttpGet("{user_id:guid}")]
+    [HttpGet("/User/{user_id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -60,7 +60,7 @@ public class UserController : ControllerBase
     #endregion
 
     #region UPDATE
-    [HttpPatch("{user_id:guid}")]
+    [HttpPatch("/User/{user_id:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

@@ -19,7 +19,7 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
-    [HttpPost("Signup")]
+    [HttpPost("/Auth/Signup")]
     public async Task<IActionResult> SignUp([FromBody] SignUpRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.email) || string.IsNullOrWhiteSpace(request.password))
@@ -44,7 +44,7 @@ public class AuthController : ControllerBase
         }
     }
 
-    [HttpPost("Signin")]
+    [HttpPost("/Auth/Signin")]
     public async Task<IActionResult> SignIn([FromBody] SigninRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.email) || string.IsNullOrWhiteSpace(request.password))
@@ -69,7 +69,7 @@ public class AuthController : ControllerBase
         }
     }
 
-    [HttpPost("ChangePassword")]
+    [HttpPost("/Auth/ChangePassword")]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.email) ||
@@ -92,7 +92,7 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Password changed successfully." });
     }
 
-    [HttpPost("ForgotPassword")]
+    [HttpPost("/Auth/ForgotPassword")]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.email) || !request.email.Contains('@'))
@@ -109,7 +109,7 @@ public class AuthController : ControllerBase
         }
     }
 
-    [HttpPost("GoogleSignIn")]
+    [HttpPost("/Auth/GoogleSignIn")]
     public async Task<IActionResult> GoogleSignIn([FromBody] GoogleSignInRequest request, CancellationToken cancellationToken)
     {
         var result = await _authService.GoogleSignInAsync(request.idToken, cancellationToken);
