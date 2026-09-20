@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Postgrest.Attributes;
 using Postgrest.Models;
 
@@ -7,7 +7,7 @@ namespace PetWise.Infrastructure.Persistence.Models;
 [Table("HealthEvent")]
 public class HealthEventModel : BaseModel
 {
-    [PrimaryKey("event_id", true)]
+    [PrimaryKey("event_id", false)]
     public int event_id { get; set; }
 
     [Column("pet_id")]

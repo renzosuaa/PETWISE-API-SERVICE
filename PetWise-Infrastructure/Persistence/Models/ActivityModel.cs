@@ -1,4 +1,4 @@
-﻿using Postgrest.Attributes;
+using Postgrest.Attributes;
 using Postgrest.Models;
 using System;
 using System.Collections.Generic;
@@ -9,7 +9,7 @@ namespace PetWise_Infrastructure.Persistence.Models
     [Table("Activity")]
     public class ActivityModel : BaseModel
     {
-        [PrimaryKey("activity_id", true)]
+        [PrimaryKey("activity_id", false)]
         public int activity_id { get; set; }
 
         [Column("pet_id")]
